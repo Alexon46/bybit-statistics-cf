@@ -2,13 +2,6 @@ import { setEnv } from './telegram/utils/envManager';
 import { handleWebhook } from './telegram/utils/handleUpdates';
 import { tg } from './telegram/lib/methods';
 
-// use `npm run cf-typegen` to regenerate `worker-configuration.d.ts`
-export interface Env {
-    SECRET: string;  // Telegram bot API secret
-    TOKEN: string;   // Telegram bot API token
-    // Add more environment variables here
-}
-
 // Define constant paths for webhook management.
 const WEBHOOK: string = '/endpoint';
 const REGISTER: string = '/registerWebhook';
@@ -27,8 +20,18 @@ export default {
                     url: `${url.protocol}//${url.hostname}${WEBHOOK}`,
                     secret_token: env.SECRET,
                 });
-                if (result) return new Response('Webhook registered.');
-                else return new Response('Failed to register webhook.');
+                if (result) {
+                    await tg.setMyCommands({
+                        commands: [
+                            { command: 'week', description: 'Статистика за текущую неделю' },
+                            { command: 'lastweek', description: 'Статистика за прошлую неделю' },
+                            { command: 'month', description: 'Статистика за текущий месяц' },
+                            { command: 'lastmonth', description: 'Статистика за прошлый месяц' },
+                        ],
+                    });
+                    return new Response('Webhook registered.');
+                }
+                return new Response('Failed to register webhook.');
             } catch (error) {
                 ctx.waitUntil((async () => {
                     return new Promise(resolve => {

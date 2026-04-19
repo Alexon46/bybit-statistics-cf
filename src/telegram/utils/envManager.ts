@@ -1,5 +1,3 @@
-import { Env } from '../../index';
-
 let env: Env;
 
 export function setEnv(envVar: Env) {

@@ -64,6 +64,8 @@ web_modules/
 # Optional npm cache directory
 
 .npm
+# Project-local cache (e.g. npm install --cache ./.npm-cache)
+.npm-cache/
 
 # Optional eslint cache
 

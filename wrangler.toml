@@ -24,8 +24,14 @@ enabled = true
 # https://developers.cloudflare.com/workers/wrangler/configuration/#environment-variables
 # Note: Use secrets to store sensitive data.
 # https://developers.cloudflare.com/workers/configuration/secrets/
-# [vars]
-# MY_VARIABLE = "production_value"
+# Required env (set in the Workers dashboard as Secrets, or via `wrangler secret put`, or in `.dev.vars` for local):
+#   SECRET, TOKEN, DATABASE_URL, GEMINI_API_KEY
+# Types for these live in src/env.d.ts (not generated from [vars]).
+#
+# Optional: remember bot message ids for cleanup between updates (create namespace: wrangler kv namespace create MESSAGE_STORE)
+# [[kv_namespaces]]
+# binding = "MESSAGE_STORE"
+# id = "<your-kv-namespace-id>"
 
 # Static Assets
 # https://developers.cloudflare.com/workers/static-assets/binding/
