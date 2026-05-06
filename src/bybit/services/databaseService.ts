@@ -112,6 +112,53 @@ export async function insert(trade: Trade, userId: number): Promise<void> {
     `;
 }
 
+export async function upsert(trade: Trade, userId: number): Promise<void> {
+    await getSql()`
+        INSERT INTO trades (
+            user_id, order_id, pair, investment_amount, investment_currency,
+            order_direction, term, target_price, apr, placement_time, order_type,
+            order_status, settlement_time, settlement_price, yield_amount,
+            yield_currency, to_account, profit_usdt
+        ) VALUES (
+            ${userId},
+            ${trade.order_id},
+            ${trade.pair},
+            ${trade.investment_amount},
+            ${trade.investment_currency},
+            ${trade.order_direction},
+            ${trade.term},
+            ${trade.target_price},
+            ${trade.apr},
+            ${trade.placement_time},
+            ${trade.order_type},
+            ${trade.order_status},
+            ${trade.settlement_time},
+            ${trade.settlement_price},
+            ${trade.yield_amount},
+            ${trade.yield_currency},
+            ${trade.to_account},
+            ${trade.profitUsdt ?? null}
+        )
+        ON CONFLICT (user_id, order_id) DO UPDATE SET
+            pair               = EXCLUDED.pair,
+            investment_amount  = EXCLUDED.investment_amount,
+            investment_currency = EXCLUDED.investment_currency,
+            order_direction    = EXCLUDED.order_direction,
+            term               = EXCLUDED.term,
+            target_price       = EXCLUDED.target_price,
+            apr                = EXCLUDED.apr,
+            placement_time     = EXCLUDED.placement_time,
+            order_type         = EXCLUDED.order_type,
+            order_status       = EXCLUDED.order_status,
+            settlement_time    = EXCLUDED.settlement_time,
+            settlement_price   = EXCLUDED.settlement_price,
+            yield_amount       = EXCLUDED.yield_amount,
+            yield_currency     = EXCLUDED.yield_currency,
+            to_account         = EXCLUDED.to_account,
+            profit_usdt        = EXCLUDED.profit_usdt
+    `;
+}
+
 export async function queryByPeriod(userId: number, startTime: Date, endTime: Date): Promise<Trade[]> {
     const rows = rowsFrom<TradeRow>(
         await getSql()`

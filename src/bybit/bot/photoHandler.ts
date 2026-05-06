@@ -4,7 +4,7 @@ import { extractTradeFromImage } from '../services/geminiService';
 import { getProfitUsdt } from '../services/statsService';
 import * as db from '../services/databaseService';
 import { deletePreviousBotMessages, tryDeleteUserMessage } from './telegramHelpers';
-import { storeMessageIds } from './messageStore';
+import { storeMessageIds, storePendingOverwrite } from './messageStore';
 
 async function downloadPhoto(fileId: string): Promise<{ buffer: ArrayBuffer; mime: 'image/jpeg' | 'image/png' | 'image/webp' }> {
     const fileMeta = await tg.getFile({ file_id: fileId });
@@ -27,8 +27,13 @@ async function downloadPhoto(fileId: string): Promise<{ buffer: ArrayBuffer; mim
     return { buffer, mime };
 }
 
-async function editStatusMessage(chatId: number, messageId: number, text: string): Promise<void> {
-    await tg.editMessageText({ chat_id: chatId, message_id: messageId, text });
+async function editStatusMessage(
+    chatId: number,
+    messageId: number,
+    text: string,
+    reply_markup?: tgTypes.InlineKeyboardMarkup,
+): Promise<void> {
+    await tg.editMessageText({ chat_id: chatId, message_id: messageId, text, reply_markup });
 }
 
 export async function handlePhoto(env: Env, message: tgTypes.Message): Promise<void> {
@@ -72,10 +77,16 @@ export async function handlePhoto(env: Env, message: tgTypes.Message): Promise<v
         }
 
         if (await db.exists(trade.order_id, userId)) {
+            await storePendingOverwrite(env, userId, trade);
             await editStatusMessage(
                 chatId,
                 statusMsg.message_id,
                 `Дубликат. Ордер ${trade.order_id} уже добавлен ранее.`,
+                {
+                    inline_keyboard: [[
+                        { text: '🔄 Обновить всё равно', callback_data: `overwrite:${trade.order_id}` },
+                    ]],
+                },
             );
             await storeMessageIds(env, userId, [statusMsg.message_id]);
             return;
