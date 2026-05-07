@@ -112,6 +112,36 @@ export async function insert(trade: Trade, userId: number): Promise<void> {
     `;
 }
 
+const PENDING_OVERWRITE_TTL_MS = 3600 * 1000;
+
+export async function storePendingTradeOverwrite(userId: number, trade: Trade): Promise<void> {
+    const tradeJson = JSON.stringify(trade);
+    const expiresAt = new Date(Date.now() + PENDING_OVERWRITE_TTL_MS).toISOString();
+    await getSql()`
+        INSERT INTO pending_trade_overwrites (user_id, order_id, trade_json, expires_at)
+        VALUES (${userId}, ${trade.order_id}, ${tradeJson}, ${expiresAt}::timestamptz)
+        ON CONFLICT (user_id, order_id) DO UPDATE SET
+            trade_json = EXCLUDED.trade_json,
+            expires_at = EXCLUDED.expires_at
+    `;
+}
+
+export async function takePendingTradeOverwrite(userId: number, orderId: string): Promise<Trade | null> {
+    const rows = rowsFrom<{ trade_json: string }>(
+        await getSql()`
+        DELETE FROM pending_trade_overwrites
+        WHERE user_id = ${userId} AND order_id = ${orderId} AND expires_at > NOW()
+        RETURNING trade_json
+    `,
+    );
+    if (!rows.length) return null;
+    try {
+        return JSON.parse(rows[0]!.trade_json) as Trade;
+    } catch {
+        return null;
+    }
+}
+
 export async function upsert(trade: Trade, userId: number): Promise<void> {
     await getSql()`
         INSERT INTO trades (
